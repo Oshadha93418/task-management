@@ -1,6 +1,6 @@
 # Task Management API
 
-A .NET Web API backend for a task management application with user authentication and CRUD operations for tasks, built following SOLID principles.
+A .NET Web API backend for a task management application with user authentication and CRUD operations for tasks, built following SOLID principles with comprehensive error handling and validation.
 
 ## Architecture & SOLID Principles
 
@@ -12,11 +12,13 @@ This application is built following SOLID principles:
 - **Repositories**: Handle data access operations
 - **Models**: Represent data structures
 - **Exceptions**: Handle specific error scenarios
+- **Middleware**: Handle cross-cutting concerns like logging and validation
 
 ### 2. Open/Closed Principle (OCP)
 - Interfaces allow for extension without modification
 - New implementations can be added without changing existing code
 - Custom exceptions can be extended for new error types
+- Middleware and filters can be extended for new validation rules
 
 ### 3. Liskov Substitution Principle (LSP)
 - All implementations can be substituted for their interfaces
@@ -45,6 +47,51 @@ This application is built following SOLID principles:
 - **Custom Exceptions**: Proper error handling
 - **Repository Pattern**: Data access abstraction
 - **Service Layer**: Business logic separation
+- **Comprehensive Error Handling**: Global exception handling with consistent error responses
+- **Input Validation**: Multi-layer validation with sanitization
+- **Request Logging**: Structured logging for all requests and errors
+- **Security**: Input sanitization and validation to prevent injection attacks
+
+## Error Handling & Validation
+
+### Global Exception Handling
+- **Middleware**: Custom middleware for request validation and error handling
+- **Global Exception Handler**: Catches unhandled exceptions and returns consistent error responses
+- **Structured Logging**: All errors are logged with context and request information
+
+### Input Validation
+- **Data Annotations**: Comprehensive validation attributes on all models
+- **Business Logic Validation**: Additional validation in service layer
+- **Input Sanitization**: Automatic sanitization of string inputs
+- **Request Size Limits**: 1MB limit on request size
+- **Content-Type Validation**: Ensures proper JSON content type for POST/PUT requests
+
+### Error Response Format
+All error responses follow a consistent format:
+```json
+{
+  "message": "Error description",
+  "statusCode": 400,
+  "timestamp": "2024-01-01T00:00:00Z",
+  "requestId": "unique-request-id",
+  "details": ["Additional error details"]
+}
+```
+
+### Validation Rules
+
+#### Task Validation
+- **Title**: Required, 1-100 characters, alphanumeric with basic punctuation
+- **Description**: Optional, max 500 characters, alphanumeric with basic punctuation
+- **ID**: Must be positive integer for updates/deletes
+
+#### User Validation
+- **Username**: Required, 3-50 characters, alphanumeric with underscores and hyphens only
+- **Password**: Required, 6-100 characters, no whitespace allowed
+
+#### Authentication Validation
+- **Login/Register**: All user validation rules apply
+- **Input Sanitization**: Automatic trimming and whitespace normalization
 
 ## Prerequisites
 
@@ -95,15 +142,23 @@ TaskManagementAPI/
 ├── Data/
 │   └── ApplicationDbContext.cs    # Entity Framework context
 ├── Exceptions/
-│   └── TaskManagementException.cs # Custom exception classes
+│   ├── TaskManagementException.cs # Custom exception classes
+│   └── InvalidCredentialsException.cs # Authentication exceptions
+├── Filters/
+│   └── RequestValidationFilter.cs # Global request validation
 ├── Interfaces/
 │   ├── IAuthService.cs            # Authentication interface
 │   ├── ITaskRepository.cs         # Task data access interface
 │   ├── ITaskService.cs            # Task business logic interface
 │   └── IUserRepository.cs         # User data access interface
+├── Middleware/
+│   └── RequestValidationMiddleware.cs # Request validation and logging
 ├── Models/
-│   ├── Task.cs                    # Task entity
-│   └── User.cs                    # User entity
+│   ├── Task.cs                    # Task entity with validation
+│   ├── User.cs                    # User entity with validation
+│   ├── AuthModels.cs              # Authentication DTOs
+│   ├── TaskDtos.cs                # Task operation DTOs
+│   └── ErrorResponse.cs           # Consistent error response format
 ├── Repositories/
 │   ├── TaskRepository.cs          # Task data access implementation
 │   └── UserRepository.cs          # User data access implementation
@@ -123,11 +178,11 @@ TaskManagementAPI/
 
 ### Tasks
 
-- `GET /api/tasks?username={username}&password={password}` - Get all tasks
-- `GET /api/tasks/{id}?username={username}&password={password}` - Get specific task
-- `POST /api/tasks?username={username}&password={password}` - Create new task
-- `PUT /api/tasks/{id}?username={username}&password={password}` - Update task
-- `DELETE /api/tasks/{id}?username={username}&password={password}` - Delete task
+- `GET /api/tasks` - Get all tasks
+- `GET /api/tasks/{id}` - Get specific task
+- `POST /api/tasks` - Create new task
+- `PUT /api/tasks/{id}` - Update task
+- `DELETE /api/tasks/{id}` - Delete task
 
 ## Default Users
 
@@ -139,44 +194,112 @@ TaskManagementAPI/
 ### Register User
 ```json
 POST /api/users/register
+Content-Type: application/json
+
 {
   "username": "newuser",
   "password": "password123"
 }
 ```
 
-### Login
+**Success Response:**
 ```json
-POST /api/users/login
 {
-  "username": "admin",
-  "password": "password123"
+  "message": "Registration successful",
+  "user": {
+    "id": 3,
+    "username": "newuser",
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**Validation Error Response:**
+```json
+{
+  "message": "Validation failed",
+  "statusCode": 400,
+  "timestamp": "2024-01-01T00:00:00Z",
+  "requestId": "unique-request-id",
+  "details": [
+    "Username must be between 3 and 50 characters",
+    "Username can only contain letters, numbers, underscores, and hyphens"
+  ]
 }
 ```
 
 ### Create Task
 ```json
-POST /api/tasks?username=admin&password=password123
+POST /api/tasks
+Content-Type: application/json
+
 {
   "title": "New Task",
-  "description": "Task description",
-  "isCompleted": false
+  "description": "Task description"
 }
 ```
 
-### Get Tasks
-```
-GET /api/tasks?username=admin&password=password123
+**Success Response:**
+```json
+{
+  "id": 1,
+  "title": "New Task",
+  "description": "Task description",
+  "isCompleted": false,
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z"
+}
 ```
 
 ## Error Handling
 
-The application uses custom exceptions for better error handling:
+The application implements comprehensive error handling:
 
+### Custom Exceptions
 - `TaskNotFoundException`: When a task is not found
 - `UserNotFoundException`: When a user is not found
 - `UserAlreadyExistsException`: When trying to create a duplicate user
 - `ValidationException`: When input validation fails
+- `InvalidCredentialsException`: When authentication fails
+
+### HTTP Status Codes
+- `200 OK`: Successful operation
+- `201 Created`: Resource created successfully
+- `400 Bad Request`: Validation errors or invalid input
+- `401 Unauthorized`: Authentication failed
+- `404 Not Found`: Resource not found
+- `409 Conflict`: Resource already exists
+- `413 Payload Too Large`: Request too large
+- `500 Internal Server Error`: Unexpected server error
+
+### Error Response Features
+- **Consistent Format**: All errors follow the same structure
+- **Request Tracking**: Each error includes a unique request ID
+- **Timestamp**: All errors include UTC timestamp
+- **Detailed Messages**: Clear, user-friendly error messages
+- **Validation Details**: Specific validation error details when applicable
+
+## Security Features
+
+### Input Validation
+- **SQL Injection Prevention**: Parameterized queries and input validation
+- **XSS Prevention**: Input sanitization and output encoding
+- **Request Size Limits**: Prevents large payload attacks
+- **Content-Type Validation**: Ensures proper request format
+
+### Authentication
+- **Input Sanitization**: Automatic trimming and normalization
+- **Password Validation**: No whitespace allowed in passwords
+- **Username Validation**: Restricted character set for usernames
+
+## Benefits of Enhanced Error Handling
+
+1. **User Experience**: Clear, consistent error messages
+2. **Debugging**: Detailed logging and request tracking
+3. **Security**: Input validation and sanitization
+4. **Maintainability**: Centralized error handling logic
+5. **Monitoring**: Structured logging for operational insights
+6. **Compliance**: Consistent error response format for API consumers
 
 ## Benefits of SOLID Implementation
 

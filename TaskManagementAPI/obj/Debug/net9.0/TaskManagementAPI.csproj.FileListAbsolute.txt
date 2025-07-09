@@ -102,3 +102,4 @@
 /Users/oshadhadushan/assignment/TaskManagementAPI/obj/Debug/net9.0/ref/TaskManagementAPI.dll
 /Users/oshadhadushan/assignment/TaskManagementAPI/bin/Debug/net9.0/MySqlConnector.dll
 /Users/oshadhadushan/assignment/TaskManagementAPI/bin/Debug/net9.0/Pomelo.EntityFrameworkCore.MySql.dll
+/Users/oshadhadushan/assignment/TaskManagementAPI/obj/Debug/net9.0/TaskManagementAPI.sourcelink.json

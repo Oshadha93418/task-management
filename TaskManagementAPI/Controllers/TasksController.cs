@@ -2,23 +2,27 @@ using Microsoft.AspNetCore.Mvc;
 using TaskManagementAPI.Exceptions;
 using TaskManagementAPI.Interfaces;
 using TaskManagementAPI.Models;
+using Microsoft.Extensions.Logging;
 
 namespace TaskManagementAPI.Controllers
 {
     [Route("api/[controller]")]
+    [ApiController]
     public class TasksController : BaseController
     {
         private readonly ITaskService _taskService;
+        private readonly ILogger<TasksController> _logger;
 
-        public TasksController(IAuthService authService, ITaskService taskService) 
+        public TasksController(IAuthService authService, ITaskService taskService, ILogger<TasksController> logger) 
             : base(authService)
         {
             _taskService = taskService;
+            _logger = logger;
         }
 
         // GET: api/tasks
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Models.Task>>> GetTasks()
+        public async Task<ActionResult<IEnumerable<TaskResponse>>> GetTasks()
         {
             try
             {
@@ -27,79 +31,187 @@ namespace TaskManagementAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+                _logger.LogError(ex, "Error retrieving all tasks");
+                return StatusCode(500, new ErrorResponse
+                {
+                    Message = "An error occurred while retrieving tasks",
+                    StatusCode = 500,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
         }
 
         // GET: api/tasks/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Models.Task>> GetTask(int id)
+        public async Task<ActionResult<TaskResponse>> GetTask(int id)
         {
             try
             {
+                if (id <= 0)
+                {
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = "Task ID must be a positive integer",
+                        StatusCode = 400,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
                 var task = await _taskService.GetTaskByIdAsync(id);
                 if (task == null)
                 {
-                    return NotFound(new { message = "Task not found" });
+                    return NotFound(new ErrorResponse
+                    {
+                        Message = "Task not found",
+                        StatusCode = 404,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
                 }
 
                 return Ok(task);
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Message = ex.Message,
+                    StatusCode = 400,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+                _logger.LogError(ex, "Error retrieving task with ID {TaskId}", id);
+                return StatusCode(500, new ErrorResponse
+                {
+                    Message = "An error occurred while retrieving the task",
+                    StatusCode = 500,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
         }
 
         // POST: api/tasks
         [HttpPost]
-        public async Task<ActionResult<Models.Task>> CreateTask(Models.Task task)
+        public async Task<ActionResult<TaskResponse>> CreateTask(CreateTaskRequest request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             try
             {
-                var createdTask = await _taskService.CreateTaskAsync(task);
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = "Validation failed",
+                        StatusCode = 400,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier,
+                        Details = errors
+                    });
+                }
+
+                var createdTask = await _taskService.CreateTaskAsync(request);
                 return CreatedAtAction(nameof(GetTask), new { id = createdTask.Id }, createdTask);
             }
             catch (ValidationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new ErrorResponse
+                {
+                    Message = ex.Message,
+                    StatusCode = 400,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+                _logger.LogError(ex, "Error creating task");
+                return StatusCode(500, new ErrorResponse
+                {
+                    Message = "An error occurred while creating the task",
+                    StatusCode = 500,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
         }
 
         // PUT: api/tasks/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTask(int id, Models.Task task)
+        public async Task<ActionResult<TaskResponse>> UpdateTask(int id, UpdateTaskRequest request)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             try
             {
-                await _taskService.UpdateTaskAsync(id, task);
-                return NoContent();
+                if (id <= 0)
+                {
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = "Task ID must be a positive integer",
+                        StatusCode = 400,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = "Validation failed",
+                        StatusCode = 400,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier,
+                        Details = errors
+                    });
+                }
+
+                var updatedTask = await _taskService.UpdateTaskAsync(id, request);
+                return Ok(updatedTask);
             }
             catch (ValidationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new ErrorResponse
+                {
+                    Message = ex.Message,
+                    StatusCode = 400,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
             catch (TaskNotFoundException)
             {
-                return NotFound(new { message = "Task not found" });
+                return NotFound(new ErrorResponse
+                {
+                    Message = "Task not found",
+                    StatusCode = 404,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+                _logger.LogError(ex, "Error updating task with ID {TaskId}", id);
+                return StatusCode(500, new ErrorResponse
+                {
+                    Message = "An error occurred while updating the task",
+                    StatusCode = 500,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
         }
 
@@ -109,18 +221,54 @@ namespace TaskManagementAPI.Controllers
         {
             try
             {
+                if (id <= 0)
+                {
+                    return BadRequest(new ErrorResponse
+                    {
+                        Message = "Task ID must be a positive integer",
+                        StatusCode = 400,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
                 var deleted = await _taskService.DeleteTaskAsync(id);
                 if (!deleted)
                 {
-                    return NotFound(new { message = "Task not found" });
+                    return NotFound(new ErrorResponse
+                    {
+                        Message = "Task not found",
+                        StatusCode = 404,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
                 }
 
                 return NoContent();
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new ErrorResponse
+                {
+                    Message = ex.Message,
+                    StatusCode = 400,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+                _logger.LogError(ex, "Error deleting task with ID {TaskId}", id);
+                return StatusCode(500, new ErrorResponse
+                {
+                    Message = "An error occurred while deleting the task",
+                    StatusCode = 500,
+                    Timestamp = DateTime.UtcNow,
+                    RequestId = HttpContext.TraceIdentifier
+                });
             }
         }
     }
+
+
 } 

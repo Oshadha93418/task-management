@@ -4,10 +4,10 @@ namespace TaskManagementAPI.Interfaces
 {
     public interface ITaskService
     {
-        Task<IEnumerable<Models.Task>> GetAllTasksAsync();
-        Task<Models.Task?> GetTaskByIdAsync(int id);
-        Task<Models.Task> CreateTaskAsync(Models.Task task);
-        Task<Models.Task> UpdateTaskAsync(int id, Models.Task task);
+        Task<IEnumerable<TaskResponse>> GetAllTasksAsync();
+        Task<TaskResponse?> GetTaskByIdAsync(int id);
+        Task<TaskResponse> CreateTaskAsync(CreateTaskRequest request);
+        Task<TaskResponse> UpdateTaskAsync(int id, UpdateTaskRequest request);
         Task<bool> DeleteTaskAsync(int id);
         Task<bool> TaskExistsAsync(int id);
     }
