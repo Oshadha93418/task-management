@@ -21,6 +21,10 @@ namespace TaskManagementAPI.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        // Add UserId to associate tasks with users
+        [Required(ErrorMessage = "User ID is required")]
+        public int UserId { get; set; }
+
         public void SanitizeInput()
         {
             if (!string.IsNullOrEmpty(Title))

@@ -70,7 +70,17 @@ export class TaskManagementComponent implements OnInit {
     if (this.taskForm.valid) {
       this.isLoading = true;
 
-      const taskData: Task = this.taskForm.value;
+      const currentUser = this.authService.getCurrentUser();
+      if (!currentUser) {
+        this.errorService.showError('User not authenticated. Please login again.');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      const taskData: Task = {
+        ...this.taskForm.value,
+        userId: currentUser.id
+      };
 
       if (this.editingTask) {
         // Update existing task

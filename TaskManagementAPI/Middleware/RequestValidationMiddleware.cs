@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using TaskManagementAPI.Exceptions;
+using System.Threading.Tasks;
 
 namespace TaskManagementAPI.Middleware
 {
@@ -18,6 +19,15 @@ namespace TaskManagementAPI.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
+            // Add user ID to context items for easy access in controllers
+            if (context.Request.Headers.TryGetValue("X-User-Id", out var userIdHeader))
+            {
+                if (int.TryParse(userIdHeader, out var userId))
+                {
+                    context.Items["CurrentUserId"] = userId;
+                }
+            }
+
             try
             {
                 // Log incoming request

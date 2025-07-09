@@ -64,5 +64,25 @@ namespace TaskManagementAPI.Repositories
         {
             return await _context.Tasks.AnyAsync(e => e.Id == id);
         }
+
+        // User-specific methods
+        public async Task<IEnumerable<Models.Task>> GetByUserIdAsync(int userId)
+        {
+            return await _context.Tasks
+                .Where(t => t.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<Models.Task?> GetByIdAndUserIdAsync(int id, int userId)
+        {
+            return await _context.Tasks
+                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+        }
+
+        public async Task<bool> ExistsForUserAsync(int id, int userId)
+        {
+            return await _context.Tasks
+                .AnyAsync(t => t.Id == id && t.UserId == userId);
+        }
     }
 } 

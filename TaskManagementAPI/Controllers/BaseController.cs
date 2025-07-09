@@ -14,7 +14,20 @@ namespace TaskManagementAPI.Controllers
             _authService = authService;
         }
 
-        // Authentication methods are no longer needed without JWT
-        // Controllers will handle authentication differently if needed
+        // Get current user ID from HTTP context
+        protected int? GetCurrentUserId()
+        {
+            if (HttpContext.Items.TryGetValue("CurrentUserId", out var userId))
+            {
+                return (int)userId;
+            }
+            return null;
+        }
+
+        // Check if user is authenticated
+        protected bool IsAuthenticated()
+        {
+            return GetCurrentUserId().HasValue;
+        }
     }
 } 

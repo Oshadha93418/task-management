@@ -26,12 +26,25 @@ namespace TaskManagementAPI.Controllers
         {
             try
             {
-                var tasks = await _taskService.GetAllTasksAsync();
+                // Check if user is authenticated
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new ErrorResponse
+                    {
+                        Message = "Authentication required. Please provide X-User-Id header",
+                        StatusCode = 401,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
+                var tasks = await _taskService.GetTasksByUserIdAsync(userId.Value);
                 return Ok(tasks);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving all tasks");
+                _logger.LogError(ex, "Error retrieving tasks for user {UserId}", GetCurrentUserId());
                 return StatusCode(500, new ErrorResponse
                 {
                     Message = "An error occurred while retrieving tasks",
@@ -48,6 +61,19 @@ namespace TaskManagementAPI.Controllers
         {
             try
             {
+                // Check if user is authenticated
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new ErrorResponse
+                    {
+                        Message = "Authentication required. Please provide X-User-Id header",
+                        StatusCode = 401,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
                 if (id <= 0)
                 {
                     return BadRequest(new ErrorResponse
@@ -59,7 +85,7 @@ namespace TaskManagementAPI.Controllers
                     });
                 }
 
-                var task = await _taskService.GetTaskByIdAsync(id);
+                var task = await _taskService.GetTaskByIdAndUserIdAsync(id, userId.Value);
                 if (task == null)
                 {
                     return NotFound(new ErrorResponse
@@ -85,7 +111,7 @@ namespace TaskManagementAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving task with ID {TaskId}", id);
+                _logger.LogError(ex, "Error retrieving task with ID {TaskId} for user {UserId}", id, GetCurrentUserId());
                 return StatusCode(500, new ErrorResponse
                 {
                     Message = "An error occurred while retrieving the task",
@@ -102,6 +128,19 @@ namespace TaskManagementAPI.Controllers
         {
             try
             {
+                // Check if user is authenticated
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new ErrorResponse
+                    {
+                        Message = "Authentication required. Please provide X-User-Id header",
+                        StatusCode = 401,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
@@ -119,7 +158,7 @@ namespace TaskManagementAPI.Controllers
                     });
                 }
 
-                var createdTask = await _taskService.CreateTaskAsync(request);
+                var createdTask = await _taskService.CreateTaskForUserAsync(request, userId.Value);
                 return CreatedAtAction(nameof(GetTask), new { id = createdTask.Id }, createdTask);
             }
             catch (ValidationException ex)
@@ -134,7 +173,7 @@ namespace TaskManagementAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating task");
+                _logger.LogError(ex, "Error creating task for user {UserId}", GetCurrentUserId());
                 return StatusCode(500, new ErrorResponse
                 {
                     Message = "An error occurred while creating the task",
@@ -151,6 +190,19 @@ namespace TaskManagementAPI.Controllers
         {
             try
             {
+                // Check if user is authenticated
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new ErrorResponse
+                    {
+                        Message = "Authentication required. Please provide X-User-Id header",
+                        StatusCode = 401,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
                 if (id <= 0)
                 {
                     return BadRequest(new ErrorResponse
@@ -179,7 +231,7 @@ namespace TaskManagementAPI.Controllers
                     });
                 }
 
-                var updatedTask = await _taskService.UpdateTaskAsync(id, request);
+                var updatedTask = await _taskService.UpdateTaskForUserAsync(id, request, userId.Value);
                 return Ok(updatedTask);
             }
             catch (ValidationException ex)
@@ -204,7 +256,7 @@ namespace TaskManagementAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating task with ID {TaskId}", id);
+                _logger.LogError(ex, "Error updating task with ID {TaskId} for user {UserId}", id, GetCurrentUserId());
                 return StatusCode(500, new ErrorResponse
                 {
                     Message = "An error occurred while updating the task",
@@ -221,6 +273,19 @@ namespace TaskManagementAPI.Controllers
         {
             try
             {
+                // Check if user is authenticated
+                var userId = GetCurrentUserId();
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new ErrorResponse
+                    {
+                        Message = "Authentication required. Please provide X-User-Id header",
+                        StatusCode = 401,
+                        Timestamp = DateTime.UtcNow,
+                        RequestId = HttpContext.TraceIdentifier
+                    });
+                }
+
                 if (id <= 0)
                 {
                     return BadRequest(new ErrorResponse
@@ -232,7 +297,7 @@ namespace TaskManagementAPI.Controllers
                     });
                 }
 
-                var deleted = await _taskService.DeleteTaskAsync(id);
+                var deleted = await _taskService.DeleteTaskForUserAsync(id, userId.Value);
                 if (!deleted)
                 {
                     return NotFound(new ErrorResponse
@@ -258,7 +323,7 @@ namespace TaskManagementAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting task with ID {TaskId}", id);
+                _logger.LogError(ex, "Error deleting task with ID {TaskId} for user {UserId}", id, GetCurrentUserId());
                 return StatusCode(500, new ErrorResponse
                 {
                     Message = "An error occurred while deleting the task",
@@ -269,6 +334,4 @@ namespace TaskManagementAPI.Controllers
             }
         }
     }
-
-
 } 
