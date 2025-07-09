@@ -1,9 +1,9 @@
 <div class="min-h-screen bg-gray-50">
   <!-- Header -->
   <header class="bg-gradient-to-r from-blue-500 to-purple-500 text-white py-5 shadow-lg">
-    <div class="max-w-7xl mx-auto px-5 flex justify-between items-center">
-      <h1 class="text-3xl font-semibold">Task Management</h1>
-      <div class="flex items-center gap-4">
+    <div class="max-w-7xl mx-auto px-5 flex justify-between items-center flex-wrap">
+      <h1 class="text-3xl font-semibold mb-4 md:mb-0">Task Management</h1>
+      <div class="flex flex-row items-center gap-4 justify-end">
         <span>Welcome, {{ authService.getCurrentUser()?.username }}</span>
         <button class="bg-white/20 hover:bg-white/30 border border-white/30 px-4 py-2 rounded-lg transition-colors duration-200" (click)="logout()">Logout</button>
       </div>
@@ -92,7 +92,7 @@
             />
           </div>
 
-          <div class="flex gap-3">
+          <div class="flex gap-3 flex-wrap">
             <select [(ngModel)]="filterStatus" (change)="onFilterChange()" class="px-4 py-3 border-2 border-gray-200 rounded-lg text-base bg-white cursor-pointer focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
               <option value="all">All Tasks</option>
               <option value="pending">Pending</option>
@@ -126,7 +126,7 @@
           </div>
 
           <div class="border border-gray-200 rounded-lg p-6 mb-4 bg-white hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300" *ngFor="let task of filteredTasks">
-            <div class="flex items-start justify-between">
+            <div class="flex flex-col md:flex-row items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center gap-3 mb-3">
                   <label class="flex items-center cursor-pointer">
