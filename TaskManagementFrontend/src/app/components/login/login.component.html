@@ -18,7 +18,8 @@
           [class.border-red-300]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
         />
         <div class="text-red-600 text-xs mt-1" *ngIf="loginForm.get('username')?.invalid && loginForm.get('username')?.touched">
-          Username is required and must be at least 3 characters
+          <span *ngIf="loginForm.get('username')?.errors?.['required']">Username is required</span>
+          <span *ngIf="loginForm.get('username')?.errors?.['minlength']">Username must be at least 3 characters long</span>
         </div>
       </div>
 
@@ -33,7 +34,8 @@
           [class.border-red-300]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
         />
         <div class="text-red-600 text-xs mt-1" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-          Password is required and must be at least 6 characters
+          <span *ngIf="loginForm.get('password')?.errors?.['required']">Password is required</span>
+          <span *ngIf="loginForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters long</span>
         </div>
       </div>
 
@@ -60,7 +62,8 @@
           [class.border-red-300]="registerForm.get('username')?.invalid && registerForm.get('username')?.touched"
         />
         <div class="text-red-600 text-xs mt-1" *ngIf="registerForm.get('username')?.invalid && registerForm.get('username')?.touched">
-          Username is required and must be at least 3 characters
+          <span *ngIf="registerForm.get('username')?.errors?.['required']">Username is required</span>
+          <span *ngIf="registerForm.get('username')?.errors?.['minlength']">Username must be at least 3 characters long</span>
         </div>
       </div>
 
@@ -75,7 +78,11 @@
           [class.border-red-300]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
         />
         <div class="text-red-600 text-xs mt-1" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
-          Password is required and must be at least 6 characters
+          <span *ngIf="registerForm.get('password')?.errors?.['required']">Password is required</span>
+          <span *ngIf="registerForm.get('password')?.errors?.['minlength']">Password must be at least 6 characters long</span>
+        </div>
+        <div class="text-gray-500 text-xs mt-1">
+          Password must be at least 6 characters long
         </div>
       </div>
 
@@ -90,7 +97,7 @@
           [class.border-red-300]="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched"
         />
         <div class="text-red-600 text-xs mt-1" *ngIf="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
-          Please confirm your password
+          <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']">Please confirm your password</span>
         </div>
         <div class="text-red-600 text-xs mt-1" *ngIf="registerForm.errors?.['passwordMismatch'] && registerForm.get('confirmPassword')?.touched">
           Passwords do not match

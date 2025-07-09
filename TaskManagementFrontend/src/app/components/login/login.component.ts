@@ -44,6 +44,8 @@ export class LoginComponent {
 
   toggleMode(): void {
     this.isLoginMode = !this.isLoginMode;
+    // Clear any existing error messages when switching modes
+    this.errorService.clearErrors();
   }
 
   onSubmit(): void {
@@ -52,6 +54,17 @@ export class LoginComponent {
     } else {
       this.register();
     }
+  }
+
+  private handleAuthError(error: any, action: string): void {
+    // If there's a specific error message from the server, show it
+    if (error.error?.message) {
+      this.errorService.showError(error.error.message);
+      return;
+    }
+    
+    // Fallback to generic error handling
+    this.errorService.handleAuthError(error, action as 'login' | 'register');
   }
 
   login(): void {
@@ -63,7 +76,7 @@ export class LoginComponent {
           this.router.navigate(['/tasks']);
         },
         error: (error) => {
-          this.errorService.showError(error.error || 'Login failed. Please try again.');
+          this.handleAuthError(error, 'login');
           this.isLoading = false;
         }
       });
@@ -78,12 +91,14 @@ export class LoginComponent {
       
       this.authService.register(registerData).subscribe({
         next: () => {
-          this.errorService.showInfo('Registration successful! Please log in.');
+          this.errorService.showInfo('Registration successful! Please log in with your new account.');
           this.isLoginMode = true;
           this.isLoading = false;
+          // Clear the register form
+          this.registerForm.reset();
         },
         error: (error) => {
-          this.errorService.showError(error.error || 'Registration failed. Please try again.');
+          this.handleAuthError(error, 'register');
           this.isLoading = false;
         }
       });
